@@ -6,7 +6,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Trang chính
+// Trang chính với menu đẹp giống GitHub
 app.get('/', (req, res) => {
   res.send(`
 <!DOCTYPE html>
@@ -16,76 +16,27 @@ app.get('/', (req, res) => {
 <title>Mini GitHub Repo</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <style>
-  *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif;}
-  body{background:#f6f8fa;}
-  /* HEADER GitHub-style */
-  header{
-    background:#24292f;
-    color:white;
-    display:flex;
-    align-items:center;
-    padding:10px 20px;
-    justify-content:space-between;
-  }
-  header h1{
-    font-weight:600;
-    font-size:20px;
-  }
-  nav a{
-    color:white;
-    text-decoration:none;
-    margin-left:20px;
-    font-size:14px;
-    position:relative;
-  }
-  nav a:hover::after{
-    content:'';
-    position:absolute;
-    left:0; bottom:-2px;
-    height:2px;
-    width:100%;
-    background:white;
-  }
-  .container{
-    max-width:700px;
-    margin:30px auto;
-    background:white;
-    padding:20px;
-    border-radius:6px;
-    box-shadow:0 0 10px #ccc;
-  }
-  label{display:block;margin-top:10px;font-weight:600;}
-  input, textarea{
-    width:100%;
-    padding:10px;
-    margin-top:5px;
-    font-size:16px;
-    border:1px solid #d1d5da;
-    border-radius:5px;
-  }
-  input:focus, textarea:focus{outline:none;border-color:#0366d6;}
-  button{
-    margin-top:15px;
-    padding:10px 20px;
-    font-size:16px;
-    font-weight:600;
-    background:#2ea44f;
-    color:white;
-    border:none;
-    border-radius:6px;
-    cursor:pointer;
-  }
-  button:hover{background:#2c974b;}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif;}
+body{background:#f6f8fa;}
+/* HEADER GitHub-style */
+header{
+  background:#24292f;color:white;display:flex;align-items:center;padding:10px 20px;justify-content:space-between;
+}
+header h1{font-weight:600;font-size:20px;}
+nav a{color:white;text-decoration:none;margin-left:20px;font-size:14px;position:relative;}
+nav a:hover::after{content:'';position:absolute;left:0;bottom:-2px;height:2px;width:100%;background:white;}
+.container{max-width:700px;margin:30px auto;background:white;padding:20px;border-radius:6px;box-shadow:0 0 10px #ccc;}
+label{display:block;margin-top:10px;font-weight:600;}
+input, textarea{width:100%;padding:10px;margin-top:5px;font-size:16px;border:1px solid #d1d5da;border-radius:5px;}
+input:focus, textarea:focus{outline:none;border-color:#0366d6;}
+button{margin-top:15px;padding:10px 20px;font-size:16px;font-weight:600;background:#2ea44f;color:white;border:none;border-radius:6px;cursor:pointer;}
+button:hover{background:#2c974b;}
 </style>
 </head>
 <body>
 <header>
-  <h1>Mini GitHub</h1>
-  <nav>
-    <a href="/">Home</a>
-    <a href="#">Explore</a>
-    <a href="#">About</a>
-  </nav>
+<h1>Mini GitHub</h1>
+<nav><a href="/">Home</a><a href="#">Explore</a><a href="#">About</a></nav>
 </header>
 <div class="container">
 <h2>Tạo file raw</h2>
@@ -102,12 +53,15 @@ app.get('/', (req, res) => {
   `);
 });
 
-// POST tạo file
-app.post('/create', (req, res) => {
+// POST tạo file: trả về link raw
+app.post('/create', (req,res)=>{
   const { filename, content } = req.body;
   if(!filename) return res.send('Vui lòng nhập tên file');
+
+  // Encode Base64 trong link
   const encoded = Buffer.from(content).toString('base64');
   const rawLink = `${req.protocol}://${req.get('host')}/raw/${encodeURIComponent(filename)}/${encoded}`;
+
   res.send(`
 <!DOCTYPE html>
 <html lang="en">
@@ -132,29 +86,17 @@ a:hover{background:#0356b6;}
   `);
 });
 
-// RAW page (dòng ngắn + không line numbers)
+// RAW thật sự: **plain text**, không wrap dòng → Roblox script load được
 app.get('/raw/:filename/:encoded', (req,res)=>{
   const { filename, encoded } = req.params;
   try{
     const content = Buffer.from(encoded,'base64').toString('utf-8');
     const linkX = `${req.protocol}://${req.get('host')}/raw/${encodeURIComponent(filename)}/${encoded}`;
-    res.send(`
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>${filename}</title>
-<style>
-body{background:#f6f8fa;font-family:'Inter',sans-serif;padding:20px;}
-pre{background:#fff;padding:15px;border-radius:6px;box-shadow:0 0 5px #ccc;display:inline-block;white-space: pre-wrap;line-height:1.5;font-size:14px;}
-</style>
-</head>
-<body>
-<pre>${content}
-${linkX}</pre>
-</body>
-</html>
-    `);
+
+    res.setHeader('Content-Type','text/plain; charset=utf-8');
+    res.setHeader('Content-Disposition',`inline; filename="${filename}"`);
+    // trả thẳng nội dung + link cuối, dòng dài vô tận
+    res.send(`${content}\n${linkX}`);
   }catch(err){
     res.status(400).send('Link không hợp lệ');
   }
